@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Document</title>
+    <style>
+        .caozuo{
+            position:fixed;
+            bottom:0px;
+            left:0px;
+            height:100px;
+            width:100%;
+        }
+        .caozuo #content{
+            width:100%;
+        }
+
+    </style>
+</head>
+<body>
+    <h1>小小聊天室 <span id="user"><%=username%></span></h1>
+    <div>
+        <ul class="list"></ul>
+    </div>
+    <div class="caozuo">
+        <input type="text" id="content">
+        <input type="button" id="fayan" value="发言">
+    </div>
+    <script type="text/javascript" src="/socket.io/socket.io.js"></script>
+    <script>
+        var user = document.getElementById('user');
+        var content = document.getElementById('content');
+        var fayan = document.getElementById('fayan');
+        var list = document.getElementsByClassName('list')[0];
+        var socket = io();
+        fayan.onclick = function(){
+            socket.emit('chat',{
+                content:content.value,
+                user:user.innerText
+            });
+        }
+        socket.on('chat',function(msg){
+            var li = document.createElement('li');
+            li.innerText = msg.user + '说：' + msg.content;
+            list.appendChild(li);
+        })
+    </script>
+</body>
+</html>

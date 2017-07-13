@@ -1,0 +1,27 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title></title>
+    </head>
+    <body>
+        <h1>修改</h1>
+        <form action="/doedit" method="get">
+            <p>
+                书名：
+                <input type="text" name="name" value="<%=book.name%>">
+            </p>
+            <p>
+                作者：
+                <input type="text" name="author" value="<%=book.author%>">
+            </p>
+            <p>
+                售价：
+                <input type="text" name="price" value="<%=book.price%>">
+            </p>
+            <input type="text" style="display:none" name="id" value="<%=book._id%>">
+            <p>
+                <input type="submit" value="提交">
+            </p>
+        </form>
+    </body>
+</html>

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        * {
+            margin: 0px;
+            padding: 0px;
+        }
+        
+        .header {
+            width: 1000px;
+            height: 100px;
+            margin: 0px auto;
+            margin-bottom: 20px;
+            background-color: #ccc;
+        }
+        
+        .content {
+            width: 1000px;
+            margin: 0px auto;
+        }
+        
+        .main {
+            width: 600px;
+            margin-right: 20px;
+            float: left;
+        }
+        
+        .aside {
+            width: 380px;
+            height: 500px;
+            float: left;
+            background-color: #ccc;
+        }
+        
+        .grid {
+            border-bottom: 1px solid #000;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header"></div>
+    <div class="content">
+        <div class="main">
+
+        </div>
+        <div class="aside"></div>
+    </div>
+    <script type="text/template" id="moban">
+        <div class="grid">
+            <h3>
+                <%= biaoti%>
+            </h3>
+            <p><span><%= shijian%></span><span><%= zuoze%></span></p>
+            <p>
+                <%= neirong%>
+            </p>
+        </div>
+    </script>
+</body>
+<script src="https://cdn.bootcss.com/jquery/1.12.4/jquery.min.js"></script>
+<script src="underscore.js" type="text/javascript"></script>
+<script type="text/javascript">
+    //得到模板内容
+    var mobanString = $('#moban').html();
+    //模板函数
+    var complied = _.template(mobanString);
+    $.get('/news', function(data, status) {
+        for (var i = 0; i < data.length; i++) {
+            var compliedString = complied(data[i]);
+            $('.main').append($(compliedString));
+        }
+    });
+</script>
+
+</html>

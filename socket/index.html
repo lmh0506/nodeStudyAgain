@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title></title>
+</head>
+
+<body>
+    <h1>hello socket</h1>
+    <input type="text" id="question">
+    <input type="button" value="提问服务器" onclick="server()">
+    <script type="text/javascript" src="/socket.io/socket.io.js"></script>
+    <script>
+        var socket = io();
+
+        function server() {
+            var question = document.getElementById('question').value;
+
+            socket.emit('question', question);
+        }
+
+        socket.on('ans', function(msg) {
+            console.log(msg);
+        })
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+    </head>
+    <body>
+        <h1>今天我买了一个iPhone <%= a %>s</h1>
+        <ul>
+            <% for(var i = 0 ; i <news.length; i++){%>
+            <li><%= news[i]%></li>
+            <%}%>
+        </ul>
+        <ul>
+            <% for(var i = 0 ; i <obj.length; i++){%>
+            <li><%= obj[i].title%>,<%= obj[i].num%></li>
+            <%}%>
+        </ul>
+    </body>
+</html>

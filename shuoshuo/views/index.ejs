@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- 上述3个meta标签*必须*放在最前面，任何其他内容都*必须*跟随其后！ -->
+    <title>班级说说</title>
+
+    <!-- Bootstrap -->
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+      .avatar{
+        border-radius:50%;
+      }
+    </style>
+  </head>
+  <body>
+    <% include header.ejs %>
+    <div class="jumbotron">
+    <%if(login){%>
+      <div class="container">
+      <div class="row">
+        <div class="col-lg-1">
+          <h1><a href="/setavater"><img class="avatar" src="<%= avatar %>" alt=""></a></h1>
+          <p><%= username%></p>
+        </div>
+        <div class="col-lg-offset-1 col-lg-6">
+        <h1>发布说说</h1>
+          <textarea name="neirong" id="content" cols="80" rows="4"></textarea>
+          <button type="button" id="fabiao" class="btn btn-default">发表说说</button>
+        </div>
+      </div>
+        
+      </div>
+    <%}else{%>
+        <div class="container">
+        <div class="row">
+          <div class="col-lg-6">
+              <h1>欢迎</h1>
+              <p>来到班级说说</p>
+              <p><a class="btn btn-primary btn-lg" href="/regist" role="button">注册</a></p>
+            </div>
+            <div class="col-lg-6">
+                <h1>已有账号登录</h1>
+                <div class="form-group">
+                    <label for="username">用户名</label>
+                    <input type="email" class="form-control" id="username" placeholder="用户名">
+                </div>
+                <div class="form-group">
+                    <label for="password">密码</label>
+                    <input type="password" class="form-control" id="password" placeholder="密码">
+                </div>
+                <button type="button" id="regist" class="btn btn-default">登录</button>
+            </div>
+          </div>
+        </div>
+          
+    <%}%>
+    </div>
+
+    <div class="container">
+      <!-- Example row of columns -->
+      <nav>
+          <ul class="pagination">
+
+          </ul>
+        </nav>
+      <div class="row" id="all">
+
+      </div>
+      <script type="text/template" id="moban">
+          <div class="col-md-4">
+            <h2><img width="40" class="avatar" src="{{=avatar}}" alt="">{{=username}}说：</h2>
+            <p>{{=content}}</p>
+            <p>发表日期：{{=datetime}}</p>
+        </div>
+      </script>
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script src="https://cdn.bootcss.com/jquery/1.12.4/jquery.min.js"></script>
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+    <script src="/js/bootstrap.min.js"></script>
+    <script src="underscore.js"></script>
+    <script>
+      var compiled = _.template($('#moban').html());
+      getData(0);
+
+
+      $('#regist').click(function(){
+        $.post('/dologin',{
+            'username':$('#username').val(),
+            'password':$('#password').val()
+        },function(result){
+            if(result == '1'){
+                //注册成功
+                window.location = '/';
+            }else if(result == '-1'){
+                //注册名被占用
+                alert('用户名不存在');
+            }else if(result == '-2'){
+                alert('密码错误');
+            }
+            else if(result == '-3'){
+                //服务器错误
+                alert('服务器出错了，请稍后重试');
+            }
+        })
+    })
+
+    $('#fabiao').click(function(){
+      var content = $('#content').val();
+      if(content.trim() == ''){
+        alert('内容不能为空');
+      }else{
+        $.post('/post',{
+          'content':content
+        },function(data){
+          if(data == '1'){
+            alert('发布成功');
+            getData(0);
+            setPage();
+          }else{
+            alert('发表失败');
+          }
+        })
+      }
+    })
+
+    setPage();
+    function setPage(){
+      $.get('/getShuoshuoAmount',function(result){
+        var amount = parseInt(result);
+        var pageAmount = Math.ceil(amount/1);
+        $('.pagination').html('');
+        for(var i = 1 ;i <= pageAmount; i++){
+          $('.pagination').append('<li><a href="#">'+i+'</a></li>');
+        }
+        $('ul.pagination li').click(function(){
+          var index = $(this).index();
+          getData(index);
+        })
+      })
+    }
+
+    function getData(index){
+      $.ajax({
+        url:'/getAllShuoshuo?page=' + index,
+        type:'get',
+        async:false,
+        success:function(data){
+          $('#all').html('');
+          for(var i = 0 ; i <data.length;i++){
+          //ajax同步
+          $.ajax({
+            url:'/getUserInfo?username='+data[i].username,
+            async:false,//同步
+            type:'get',
+            success:function(obj){
+              data[i].avatar = obj.avatar;
+              console.log(obj);
+              var str = compiled(data[i]);
+              $('#all').append($(str));
+            }
+            });
+        }
+        }
+        })
+    }
+    </script>
+  </body>
+</html>
