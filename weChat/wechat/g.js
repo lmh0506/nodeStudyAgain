@@ -45,7 +45,7 @@ module.exports = function(opts, reply) {
 
       this.weixin = message
 
-      //改变回复信息函数的this指向  即weixin.reply函数
+      //改变回复信息函数的this指向  即reply.reply函数
       yield reply.call(this, next)
       //改变回复信息函数的this指向  即Wechat.prototype.reply函数
       wechat.reply.call(this)

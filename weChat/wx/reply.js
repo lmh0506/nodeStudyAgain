@@ -1,12 +1,22 @@
-var config = require('./config')
-var Wechat = require('./wechat/wechat')
+var path = require('path')
+var config = require('../config')
+var Wechat = require('../wechat/wechat')
 var wechatApi = new Wechat(config.wechat)
-
+var menu = require('./menu')
 
 //reply 为回复信息
 exports.reply = function *(next){
   //这里的this已被改变
   var message = this.weixin
+
+  wechatApi.deleteMenu()
+  .then(function(){
+    return wechatApi.createMenu(menu)
+  })
+  .then(function(msg){
+    console.log(msg)
+  })
+  console.log(message)
 
   if(message.MsgType === 'event'){
     if(message.Event === 'subscribe'){
@@ -16,10 +26,10 @@ exports.reply = function *(next){
 
       this.body = '哈哈 ， 你订阅了这个公众号    消息ID：'
 
-    }else if(message.Event = 'unsubscribe'){
+    }else if(message.Event === 'unsubscribe'){
       console.log('无情取关')
       this.body = ''
-    }else if(message.Event = 'LOCATION'){
+    }else if(message.Event === 'LOCATION'){
       this.body = '您上报的位置是：' + message.Latitude + '/' + message.Longitude + '-' + message.Precision
     }else if(message.Event === 'CLICK'){
       this.body = '您点击了菜单：' + message.EventKey
@@ -27,6 +37,33 @@ exports.reply = function *(next){
       console.log('关注后扫二维码' + message.EventKey + '  ' + message.Ticket)
       this.body = '看到你扫一下哦'
     }else if(message.Event === 'VIEW'){
+      this.body = '你点击了菜单中的链接：' + message.EventKey
+    }else if(message.Event === 'scancode_push'){
+      console.log(message.ScanCodeInfo.ScanType)
+      console.log(message.ScanCodeInfo.ScanResult)
+      this.body = '你点击了菜单中的链接：' + message.EventKey
+    }else if(message.Event === 'scancode_waitmsg'){
+      console.log(message.ScanCodeInfo.ScanType)
+      console.log(message.ScanCodeInfo.ScanResult)
+      this.body = '你点击了菜单中的链接：' + message.EventKey
+    }else if(message.Event === 'pic_sysphoto'){
+      console.log(message.SendPicsInfo.PicList)
+      console.log(message.SendPicsInfo.Count)
+      this.body = '你点击了菜单中的链接：' + message.EventKey
+    }else if(message.Event === 'pic_photo_or_album'){
+      console.log(message.SendPicsInfo.PicList)
+      console.log(message.SendPicsInfo.Count)
+      this.body = '你点击了菜单中的链接：' + message.EventKey
+    }else if(message.Event === 'pic_weixin'){
+      console.log(message.SendPicsInfo.PicList)
+      console.log(message.SendPicsInfo.Count)
+      this.body = '你点击了菜单中的链接：' + message.EventKey
+    }else if(message.Event === 'location_select'){
+      console.log(message.SendLocationInfo.Location_X)
+      console.log(message.SendLocationInfo.Location_Y)
+      console.log(message.SendLocationInfo.Scale)
+      console.log(message.SendLocationInfo.Label)
+      console.log(message.SendLocationInfo.Poiname)
       this.body = '你点击了菜单中的链接：' + message.EventKey
     }
   }else if(message.MsgType === 'text'){
@@ -50,14 +87,14 @@ exports.reply = function *(next){
         url:'https://passport.weibo.com/visitor/visitor?entry=miniblog&a=enter&url=http%3A%2F%2Fweibo.com%2F&domain=.weibo.com&sudaref=https%3A%2F%2Fwww.baidu.com%2Flink%3Furl%3DexFJfyBq_Sl5EL4FC91A45Fb01tF1joIQIYUVNO4GrW%26wd%3D%26eqid%3Df6569375000261a30000000459622c34&ua=php-sso_sdk_client-0.6.23&_rand=1499606069.8978'
       }]
     }else if(content === '4'){
-      var data = yield wechatApi.uploadMaterial(__dirname + '/2.jpg', 'image')
+      var data = yield wechatApi.uploadMaterial(path.join(__dirname, '../2.jpg'), 'image')
 
       reply = {
         type: 'image',
         media_id: data.media_id
       }
     }else if(content === '5'){
-      var data = yield wechatApi.uploadMaterial(__dirname + '/1.mp4', 'video')
+      var data = yield wechatApi.uploadMaterial(path.join(__dirname ,'../1.mp4'), 'video')
 
       reply = {
         type: 'video',
@@ -66,7 +103,7 @@ exports.reply = function *(next){
         media_id: data.media_id
       }
     }else if(content === '6'){
-      var data = yield wechatApi.uploadMaterial(__dirname + '/2.jpg', 'image')
+      var data = yield wechatApi.uploadMaterial(path.join(__dirname , '../2.jpg'), 'image')
 
       reply = {
         type: 'music',
@@ -76,14 +113,14 @@ exports.reply = function *(next){
         media_id: data.media_id
       }
     }else if(content === '7'){
-      var data = yield wechatApi.uploadMaterial(__dirname + '/2.jpg', 'image',{type: 'image'})
+      var data = yield wechatApi.uploadMaterial(path.join(__dirname , '../2.jpg'), 'image',{type: 'image'})
 
       reply = {
         type: 'image',
         media_id: data.media_id
       }
     }else if(content === '8'){
-      var data = yield wechatApi.uploadMaterial(__dirname + '/1.mp4', 'video',{type: 'vide', description: '{"title":"视频标题", "introduction": "视频描述"}'})
+      var data = yield wechatApi.uploadMaterial(path.join(__dirname , '../1.mp4'), 'video',{type: 'vide', description: '{"title":"视频标题", "introduction": "视频描述"}'})
 
       reply = {
         type: 'video',
@@ -92,7 +129,7 @@ exports.reply = function *(next){
         media_id: data.media_id
       }
     }else if(content === '9'){
-      var picData = yield wechatApi.uploadMaterial(__dirname + '/2.jpg', 'image', {})
+      var picData = yield wechatApi.uploadMaterial(path.join(__dirname , '../2.jpg'), 'image', {})
 
       var media = {
         articles: [{
@@ -195,6 +232,41 @@ exports.reply = function *(next){
       console.log(userList)
 
       reply = JSON.stringify(userList)
+    }else if(content === '14'){
+      var mpnews = {
+        media_id : 'gwqtB28_6Tf3TcHfHhgtW5njueWIJSJIQxd2a981rVM'
+      }
+
+      var msgData = yield wechatApi.sendByTag('mpnews', mpnews, 100)
+
+      console.log(msgData)
+      reply = 'yeah'
+    }else if(content === '15'){
+      var mpnews = {
+        media_id : 'gwqtB28_6Tf3TcHfHhgtW5njueWIJSJIQxd2a981rVM'
+      }
+
+      var msgData = yield wechatApi.previewMass('mpnews', mpnews, 'oRA-F0f3aS9Esm7lBEi8IPv2VdGg')
+
+      console.log(msgData)
+      reply = 'yeah'
+    }else if(content === '16'){
+
+      var msgData = yield wechatApi.checckMass('6442142076136729098')
+
+      console.log(msgData)
+      reply = 'yeah'
+    }else if(content === '17'){
+      var semanticData = {
+        query: '查一下明天的电影',
+        city: '丽水市',
+        category: 'movie',
+        uid : message.FromUserName
+      }
+
+      var _semanticData = yield wechatApi.semantic(semanticData)
+      console.log(_semanticData)
+      reply = JSON.stringify(_semanticData)
     }
 
     this.body = reply
