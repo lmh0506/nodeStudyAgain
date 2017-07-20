@@ -8,36 +8,36 @@ var util = require('./util')
 module.exports = function(opts, reply) {
   var wechat = new Wechat(opts)
 
-  return function *(next){ //验证开发者身份
-    console.log(this.query)
+  return async function (ctx, next){ //验证开发者身份
+    console.log(ctx.query)
     var token = opts.token;
-    var signature = this.query.signature;
-    var nonce = this.query.nonce;
-    var timestamp = this.query.timestamp;
-    var echostr = this.query.echostr;
+    var signature = ctx.query.signature;
+    var nonce = ctx.query.nonce;
+    var timestamp = ctx.query.timestamp;
+    var echostr = ctx.query.echostr;
 
     var str = [token, timestamp, nonce].sort().join('')
     var sha = sha1(str)
 
-    console.log(this.method)
-    if(this.method === 'GET'){
+    console.log(ctx.method)
+    if(ctx.method === 'GET'){
       if(sha === signature) {
-        this.body = echostr + ''
+        ctx.body = echostr + ''
       }else {
-        this.body = 'wrong'
+        ctx.body = 'wrong'
       }
-    }else if(this.method === 'POST'){
+    }else if(ctx.method === 'POST'){
       if(sha !== signature) {
-        this.body = 'wrong'
+        ctx.body = 'wrong'
         return false
       }
-      var data = yield getRawBody(this.req, {
-        length: this.length,
+      var data = await getRawBody(ctx.req, {
+        length: ctx.length,
         limit: '1mb',
-        encoding: this.charset
+        encoding: ctx.charset
       })
 
-      var content = yield util.parseXMLAsync(data)
+      var content = await util.parseXMLAsync(data)
 
       var message = util.formatMessage(content.xml)
       //message 为xml转换成的json且格式化后的json
@@ -46,10 +46,14 @@ module.exports = function(opts, reply) {
       this.weixin = message
 
       //改变回复信息函数的this指向  即reply.reply函数
-      yield reply.call(this, next)
+      await reply.call(this, next)
+
       //改变回复信息函数的this指向  即Wechat.prototype.reply函数
       wechat.reply.call(this)
-      
+
+      ctx.response.status = this.status
+      ctx.response.type = this.type
+      ctx.response.body = this.body
     }
 
   }

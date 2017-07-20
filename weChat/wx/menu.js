@@ -8,7 +8,7 @@ module.exports = {
     'sub_button': [{
       type: 'view',
       name: '跳转URL',
-      url: 'https://www.baidu.com/'
+      url: 'http://d41ac09f.ngrok.io/movie'
     },{
       type: 'scancode_push',
       name: '扫码推送事件扫码推送事件扫码推送事件',

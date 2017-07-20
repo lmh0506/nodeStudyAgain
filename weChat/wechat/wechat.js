@@ -51,6 +51,9 @@ var api = {
     get : prefix + 'menu/get?',//自定义菜单查询
     del: prefix + 'menu/delete?',//自定义菜单删除
     current: prefix + 'get_current_selfmenu_info?'//获取自定义菜单配置
+  },
+  ticket: {
+    get : prefix + 'ticket/getticket?'//用access_token 采用http GET方式请求获得jsapi_ticket
   }
 }
 
@@ -58,22 +61,23 @@ var api = {
 const Wechat = function (opts){
   this.appID = opts.appID;
   this.appSecret = opts.appSecret;
+
   this.getAccessToken = opts.getAccessToken;
   this.saveAccessToken = opts.saveAccessToken;
+
+  this.getTicket = opts.getTicket;
+  this.saveTicket = opts.saveTicket;
+
   this.fetchAccessToken()
 
 }
 
+//获取access_token
 Wechat.prototype.fetchAccessToken = function(){
   var that = this
-  if(this.access_token && this.expires_in){//如果票据存在且在有效期内则传递下去
-    if(this.isValidAccessToken(this)){
-      return Promise.resolve(this)
-    }
-  }
 
   //不存在就重新获取票据
-  this.getAccessToken() // 获取票据
+  return this.getAccessToken() // 获取票据
     .then(function(data){
       try{
         data = JSON.parse(data)
@@ -89,9 +93,6 @@ Wechat.prototype.fetchAccessToken = function(){
       }
     })
     .then(function(data){
-      //如果获取成功则将票据和有效期存为wechat对象属性
-      that.access_token = data.access_token
-      that.expires_in = data.expires_in //过期时间的字段
 
       that.saveAccessToken(data)
       return Promise.resolve(data)
@@ -114,7 +115,7 @@ Wechat.prototype.isValidAccessToken = function(data){//判断票据是否有效
   }
 }
 
-//更新票据
+//更新access_token票据
 Wechat.prototype.updateAccessToken = function(){
   var appID = this.appID;
   var appSecret = this.appSecret;
@@ -134,6 +135,69 @@ Wechat.prototype.updateAccessToken = function(){
     })
   })
   
+}
+
+//获取jsapi_ticket
+Wechat.prototype.fetchTicket = function(access_token){
+  var that = this
+
+  //不存在就重新获取票据
+  return this.getTicket() // 获取jsapi_ticket票据
+    .then(function(data){
+      try{
+        data = JSON.parse(data)
+      }
+      catch(e){
+        return that.updateTicket(access_token)
+      }
+
+      if(that.isValidTicket(data)){ //判断jsapi_ticket票据是否在有效期内
+        return Promise.resolve(data) //如果合法 将data传递下去
+      }else{ //不合法就更新票据
+        return that.updateTicket(access_token)
+      }
+    })
+    .then(function(data){
+
+      that.saveTicket(data)
+      return Promise.resolve(data)
+    })
+}
+
+//更新jsapi_ticket票据
+Wechat.prototype.updateTicket = function(access_token){
+  var url = api.ticket.get + 'access_token=' + access_token + '&type=jsapi';//请求jsapi_ticket票据的地址
+
+  return new Promise(function(resolve, reject){
+    //请求票据 返回的值要求为json
+    request({url: url, json: true}).then(function(res){
+      var data = res.body; 
+      console.log(res.body)
+      var now = (new Date().getTime());
+      var expires_in = now + (data.expires_in - 20) * 1000;//提前20秒更新票据
+    //更新有效时间
+      data.expires_in = expires_in
+
+      resolve(data) //传递data
+    })
+  })
+  
+}
+
+Wechat.prototype.isValidTicket = function(data){//判断票据是否有效
+  //如果data对象不存在 票据也不存在  有效期字段也不存在就返回false
+  if(!data || !data.ticket || !data.expires_in){
+    return false
+  }
+  var ticket = data.ticket;
+  var expires_in = data.expires_in;
+  var now = (new Date().getTime())
+
+  if(ticket && now < expires_in){ //判断当前时间是否在有效期内
+    return true
+  }else{
+    return false
+  }
 }
 
 //回复信息
