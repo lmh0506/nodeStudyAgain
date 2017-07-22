@@ -2,9 +2,9 @@ var Movie = require('../api/movie')
 
 // index page
 exports.index = async function(ctx, next) {
-  var categirues = await Movie.findAll()
+  var categories = await Movie.findAll()
 
-  await ctx.render('page/index', {
+  await ctx.render('pages/index.jade', {
     title: 'imooc 首页',
     categories: categories
   })
@@ -12,6 +12,7 @@ exports.index = async function(ctx, next) {
 
 // search page
 exports.search = async function(ctx, next) {
+
   var catId = ctx.query.cat
   var q = ctx.query.q
   var page = parseInt(ctx.query.p, 10) || 0
@@ -24,7 +25,7 @@ exports.search = async function(ctx, next) {
     var movies = category.movies || []
     var results = movies.slice(index, index + count)
 
-    await ctx.render('page/results', {
+    await ctx.render('pages/results.jade', {
       title: 'imooc 结果列表页面',
       keyword: category.name,
       currentPage: (page + 1),
@@ -37,7 +38,7 @@ exports.search = async function(ctx, next) {
     var movies = await Movie.searchByName(q)
     var results = movies.slice(index, index + count)
 
-    await ctx.render('page/results', {
+    await ctx.render('pages/results.jade', {
       title: 'imooc 结果列表页面',
       keyword: q,
       currentPage: (page + 1),

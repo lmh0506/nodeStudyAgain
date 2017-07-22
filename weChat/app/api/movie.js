@@ -42,11 +42,12 @@ exports.searchByName = async function(name){
 }
 
 function updateMovies(movie){
+
   var options = {
     url: 'http://api.douban.com/v2/movie/subject/' + movie.doubanId,
     json: true
   }
-  console.log(movie)
+  
   request(options).then((res) => {
     var data = res.body
 
@@ -102,7 +103,7 @@ exports.searchByDouban = async function (name){
   var response = await request(options)
 
   var data = response.body;
-  
+
   var subjects = []
   var movies = []
 
@@ -117,6 +118,7 @@ exports.searchByDouban = async function (name){
         var movie = await Movie.findOne({doubanId: item.id})
         
         if(movie){
+          updateMovies(movie)
           movies.push(movie)
         }else{
           var directors = item.directors || []
@@ -132,16 +134,14 @@ exports.searchByDouban = async function (name){
           })
 
           movie = await movie.save()
+          updateMovies(movie)
           movies.push(movie)
         }
       })
     })
-     queryArr.forEach(async (item) => {
-      await item()
-    })
 
-    movies.forEach((movie) => {
-      updateMovies(movie)
+    queryArr.forEach(async (item) => {
+      await item()
     })
 
   }
@@ -156,4 +156,24 @@ exports.searchById = async function(id){
     .exec()
   
   return movie
+}
+
+exports.findHotMovies = async function(hot, count){
+  var movies = await Movie
+    .find({'pv': hot})
+    .limit(count)
+    .sort()
+
+  return movies
+}
+exports.findMoviesByCate = async function(cate){
+  var category = await Category
+    .findOne({name: cate})
+    .populate({
+      path: 'movies',
+      select: 'title poster _id'
+    })
+    .exec()
+  
+  return category
 }

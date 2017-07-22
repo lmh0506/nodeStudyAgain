@@ -6,6 +6,15 @@ var menu = require('./menu')
 
 var Movie = require('../app/api/movie')
 
+var help = '亲爱的，欢迎关注科幻电影世界\n' + 
+        '回复 1 ~ 3，测试文字回复\n' + 
+        '回复 4， 测试图文回复\n' + 
+        '回复 首页， 进入微信登录绑定\n' + 
+        '回复搜电影，进入语音搜电影页面\n' + 
+        '回复电影名字，查询电影信息\n' + 
+        '回复语音，查询电影信息\n' + 
+        '也可以点击<a href="http://355573c1.ngrok.io/movie">语音查电影</a>'
+
 //reply 为回复信息
 exports.reply = async function (ctx, next){
   //这里的this已被改变
@@ -26,14 +35,7 @@ exports.reply = async function (ctx, next){
         console.log('扫二维码进来' + message.EventKey + ' ' + message.Ticket)
       }
 
-      this.body = '亲爱的，欢迎关注科幻电影世界\n' + 
-        '回复 1 ~ 3，测试文字回复\n' + 
-        '回复 4， 测试图文回复\n' + 
-        '回复 首页， 进入微信登录绑定\n' + 
-        '回复搜电影，进入语音搜电影页面\n' + 
-        '回复电影名字，查询电影信息\n' + 
-        '回复语音，查询电影信息\n' + 
-        '也可以点击<a href="http://355573c1.ngrok.io/movie">语音查电影</a>'
+      this.body = help
 
 
     }else if(message.Event === 'unsubscribe'){
@@ -42,7 +44,54 @@ exports.reply = async function (ctx, next){
     }else if(message.Event === 'LOCATION'){
       this.body = '您上报的位置是：' + message.Latitude + '/' + message.Longitude + '-' + message.Precision
     }else if(message.Event === 'CLICK'){
-      this.body = '您点击了菜单：' + message.EventKey
+      var news = []
+      if(message.EventKey === 'movie_hot'){
+        let movies = await Movie.findHotMovies(-1, 5)
+        movies.forEach((movie) => {
+          news.push({
+            title: movie.title,
+            description: movie.title,
+            picurl: movie.poster,
+            url: 'http://d41bb9fc.ngrok.io/wechat/jump/' + movie._id
+          })
+        })
+      }else if(message.EventKey === 'movie_cold'){
+        let movies = await Movie.findHotMovies(1, 5)
+        movies.forEach((movie) => {
+          news.push({
+            title: movie.title,
+            description: movie.title,
+            picurl: movie.poster,
+            url: 'http://d41bb9fc.ngrok.io/wechat/jump/' + movie._id
+          })
+        })
+      }else if(message.EventKey === 'movie_crime'){
+        let cate = await Movie.findMoviesByCate('犯罪')
+        cate.movies.forEach((movie) => {
+          news.push({
+            title: movie.title,
+            description: movie.title,
+            picurl: movie.poster,
+            url: 'http://d41bb9fc.ngrok.io/wechat/jump/' + movie._id
+          })
+        })
+      }else if(message.EventKey === 'movie_cartoon'){
+        let cate = await Movie.findMoviesByCate('动画')
+        cate.movies.forEach((movie) => {
+          news.push({
+            title: movie.title,
+            description: movie.title,
+            picurl: movie.poster,
+            url: 'http://d41bb9fc.ngrok.io/wechat/jump/' + movie._id
+          })
+        })
+      }else if(message.EventKey === 'help'){
+        news = help
+      }
+
+      this.body = news
+
+
     }else if(message.Event === 'SCAN'){
       console.log('关注后扫二维码' + message.EventKey + '  ' + message.Ticket)
       this.body = '看到你扫一下哦'
@@ -87,13 +136,13 @@ exports.reply = async function (ctx, next){
       if(movies && movies.length > 0){// 数据库中没有数据时  从豆瓣获取
         var reply = []
 
-        movies = movies.slice(0, 10)
+        movies = movies.slice(0, 5)
         movies.forEach((movie) => {
           reply.push({
             title: movie.title,
             description: movie.title,
             picurl: movie.poster,
-            url: 'http://c718e539.ngrok.io/movie/' + movie._id
+            url: 'http://d41bb9fc.ngrok.io/wechat/jump/' + movie._id
           })
         })
       }else{
@@ -317,7 +366,7 @@ exports.reply = async function (ctx, next){
             title: movie.title,
             description: movie.title,
             picurl: movie.poster,
-            url: 'http://c718e539.ngrok.io/movie/' + movie._id
+            url: 'http://d41bb9fc.ngrok.io/wechat/jump/' + movie._id
           })
         })
       }else{

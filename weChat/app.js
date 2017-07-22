@@ -2,6 +2,7 @@ var Koa = require('koa')
 var mongoose = require('mongoose')
 var fs = require('fs')
 var dbUrl = 'mongodb://localhost/imooc'
+var moment = require('moment')
 
 mongoose.connect(dbUrl)
 
@@ -40,21 +41,39 @@ wechatApi.deleteMenu()
 
 var app = new Koa()
 var Router = require('koa-router')
+var session = require('koa-session')
+var bodyParser = require('koa-bodyparser')
 var router = new Router()
-var game = require('./app/controllers/game')
-var wechat = require('./app/controllers/wechat')
+var User = mongoose.model('User')
+
+app.keys = ['imooc']
+app.use(session(app))
+app.use(bodyParser())
+
+app.use(async (ctx, next) => {
+  var user = ctx.session.user
+  if(user && user._id){
+    ctx.session.user = await User.findOne({_id: user._id}).exec()
+    ctx.state.user = ctx.session.user
+  }else{
+    ctx.state.user = null
+  }
+
+  await next()
+})
 
 var views = require('koa-views')
 app.use(views(__dirname + '/app/views', {
   map: {
     html: 'jade'
+  },
+  locals: {
+    moment: moment
   }
 }))
 
-router.get('/wx', wechat.hear)
-router.post('/wx', wechat.hear)
-router.get('/movie', game.movie)
-router.get('/movie/:id', game.movieShow)
+require('./config/routes')(router)
+
 
 app.use(router.routes());
 app.use(router.allowedMethods());

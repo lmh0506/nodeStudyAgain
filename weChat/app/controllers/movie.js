@@ -2,112 +2,92 @@ var mongoose = require('mongoose')
 var Movie = mongoose.model('Movie')
 var Category = mongoose.model('Category')
 var Comment = mongoose.model('Comment')
-var _ = require('underscore')
+var _ = require('lodash')
 var fs = require('fs')
 var path = require('path')
+var moment = require('moment')
 
 // detail page
-exports.detail = function(req, res) {
-  var id = req.params.id
+exports.detail = async function(ctx, next) {
+  var id = ctx.params.id
 
-  Movie.update({_id: id}, {$inc: {pv: 1}}, function(err) {
-    if (err) {
-      console.log(err)
-    }
-  })
+  await Movie.update({_id: id}, {$inc: {pv: 1}}).exec()
 
-  Movie.findById(id, function(err, movie) {
-    Comment
-      .find({movie: id})
-      .populate('from', 'name')
-      .populate('reply.from reply.to', 'name')
-      .exec(function(err, comments) {
-        res.render('detail', {
+  var movie = await Movie.findOne({_id: id}).exec()
+  var comments = await Comment
+    .find({movie: id})
+    .populate('from', 'name')
+    .populate('reply.from reply.to', 'name')
+    .exec()
+
+  await ctx.render('pages/detail.jade', {
           title: 'imooc 详情页',
           movie: movie,
           comments: comments
         })
-      })
-  })
 }
 
 // admin new page
-exports.new = function(req, res) {
-  Category.find({}, function(err, categories) {
-    res.render('admin', {
-      title: 'imooc 后台录入页',
-      categories: categories,
-      movie: {}
-    })
+exports.new = async function(ctx, next) {
+  var categories = await Category.find({}).exec()
+  await ctx.render('pages/admin.jade', {
+    title: 'imooc 后台录入页',
+    categories: categories,
+    movie: {}
   })
 }
 
 // admin update page
-exports.update = function(req, res) {
-  var id = req.params.id
-
+exports.update = async function(ctx, next) {
+  var id = ctx.params.id
   if (id) {
-    Movie.findById(id, function(err, movie) {
-      Category.find({}, function(err, categories) {
-        res.render('admin', {
-          title: 'imooc 后台更新页',
-          movie: movie,
-          categories: categories
-        })
-      })
+    var movie = await Movie.findOne({_id: id}).exec()
+
+    var categories = await Category.find({}).exec()
+    await ctx.render('pages/admin.jade', {
+      title: 'imooc 后台更新页',
+      movie: movie,
+      categories: categories
     })
   }
 }
 
+var util = require('../../libs/util')
+
 // admin poster
-exports.savePoster = function(req, res, next) {
-  var posterData = req.files.uploadPoster
+exports.savePoster = async function(ctx, next) {
+  var posterData = ctx.request.body.files.uploadPoster
   var filePath = posterData.path
-  var originalFilename = posterData.originalFilename
+  var name = posterData.name
 
-  if (originalFilename) {
-    fs.readFile(filePath, function(err, data) {
-      var timestamp = Date.now()
-      var type = posterData.type.split('/')[1]
-      var poster = timestamp + '.' + type
-      var newPath = path.join(__dirname, '../../', '/public/upload/' + poster)
+  if (name) {
+    var data = await util.readFileAsync(filePath, 'base64')
+    var timestamp = Date.now()
+    var type = posterData.type.split('/')[1]
+    var poster = timestamp + '.' + type
+    var newPath = path.join(__dirname, '../../', '/public/upload/' + poster)
+    await util.writeFileAsync(newPath, data) 
 
-      fs.writeFile(newPath, data, function(err) {
-        req.poster = poster
-        next()
-      })
-    })
+    ctx.poster = poster
   }
-  else {
-    next()
-  }
+  await next()
 }
 
 // admin post movie
-exports.save = function(req, res) {
-  var id = req.body.movie._id
-  var movieObj = req.body.movie
+exports.save = async function(ctx, next) {
+  var movieObj = ctx.request.body.fields || {}
   var _movie
 
-  if (req.poster) {
-    movieObj.poster = req.poster
+  if (ctx.poster) {
+    movieObj.poster = ctx.poster
   }
 
-  if (id) {
-    Movie.findById(id, function(err, movie) {
-      if (err) {
-        console.log(err)
-      }
+  if (movieObj._id) {
+    var movie = await Movie.findOne({_id: movieObj._id}).exec()
 
-      _movie = _.extend(movie, movieObj)
-      _movie.save(function(err, movie) {
-        if (err) {
-          console.log(err)
-        }
-
-        res.redirect('/movie/' + movie._id)
-      })
-    })
+    _movie = _.extend(movie, movieObj)
+    await _movie.save()
+    ctx.response.redirect('/movie/' + movie._id)
   }
   else {
     _movie = new Movie(movieObj)
@@ -115,18 +95,13 @@ exports.save = function(req, res) {
     var categoryId = movieObj.category
     var categoryName = movieObj.categoryName
 
-    _movie.save(function(err, movie) {
-      if (err) {
-        console.log(err)
-      }
+    await _movie.save()
       if (categoryId) {
-        Category.findById(categoryId, function(err, category) {
-          category.movies.push(movie._id)
 
-          category.save(function(err, category) {
-            res.redirect('/movie/' + movie._id)
-          })
-        })
+       var category = await Category.findOne({_id: categoryId})
+          category.movies.push(movie._id)
+          await category.save()
+          ctx.response.redirect('/movie/' + movie._id)
       }
       else if (categoryName) {
         var category = new Category({
@@ -134,46 +109,37 @@ exports.save = function(req, res) {
           movies: [movie._id]
         })
 
-        category.save(function(err, category) {
-          movie.category = category._id
-          movie.save(function(err, movie) {
-            res.redirect('/movie/' + movie._id)
-          })
-        })
+        await category.save()
+        movie.category = category._id
+        await movie.save()
+        ctx.response.redirect('/movie/' + movie._id)
       }
-    })
   }
 }
 
 // list page
-exports.list = function(req, res) {
-  Movie.find({})
+exports.list = async function(ctx, next) {
+  var movies = await Movie.find({})
     .populate('category', 'name')
-    .exec(function(err, movies) {
-      if (err) {
-        console.log(err)
-      }
-
-      res.render('list', {
-        title: 'imooc 列表页',
-        movies: movies
-      })
+    .exec()
+  await ctx.render('pages/list.jade', {
+      title: 'imooc 列表页',
+      movies: movies,
+      moment: moment
     })
 }
 
 // list page
-exports.del = function(req, res) {
-  var id = req.query.id
+exports.del = async function(ctx, next) {
+  var id = ctx.query.id
 
   if (id) {
-    Movie.remove({_id: id}, function(err, movie) {
-      if (err) {
-        console.log(err)
-        res.json({success: 0})
-      }
-      else {
-        res.json({success: 1})
-      }
-    })
+    try{
+      var movie = await Movie.remove({_id: id}).exec()
+      ctx.body = {success: 1}
+    }catch(err){
+      ctx.body = {success: 0}
+    }
+    
   }
 }
